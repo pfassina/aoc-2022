@@ -32,15 +32,17 @@ class Dir:
     def _dir_sizes(self) -> int:
         return sum([d.size for d in self.directories])
 
-    def get_dir_sizes(self) -> list[tuple[str, int]]:
-        out = [(self.name, self.size)]
+    def get_all_dirs(self, dirs: list[Dir]):
+
+        dirs.append(self)
+
+        if len(self.directories) == 0:
+            return dirs
+
         for d in self.directories:
-            dirs = d.get_dir_sizes()
-            if len(dirs) == 1:
-                out.append(dirs[0])
-            for subd in dirs:
-                out.append(subd)
-        return out
+            d.get_all_dirs(dirs)
+            
+        return dirs
 
     def print(self, level=0) -> None:
         new_level = level + 1
@@ -92,12 +94,13 @@ def parse_ls(line: str, line_type: LineType) -> str:
 def parse_cd(line: str, cwd: Dir, root: Dir) -> Dir:
     target = line[5:]
     if target == '..':
+        assert cwd.parent
         return cwd.parent
     if target != '/':
         return [d for d in cwd.directories if d.name == target][0]
     return root
 
-def parse_line(line: str, root: dir, cwd: dir) -> Dir:
+def parse_line(line: str, root: Dir, cwd: Dir) -> Dir:
 
     line_type = parse_line_type(line)
 
@@ -135,17 +138,31 @@ def parse_input(input: str) -> Dir:
 
 def part_one(input: str) -> int:
     root = parse_input(input)
-    root.print()
-    dirs = root.get_dir_sizes()
-    small_dirs = [v for _ , v in dirs if v <= 100000]
+    """ root.print() """
+    dirs = root.get_all_dirs([])
+
+    small_dirs = [d for d in dirs if d.size <= 100000]
+    for sd in small_dirs:
+        print(sd.name, sd.size)
     
-    # [print(d) for d in dirs if d[1] <= 100000]
-    return sum(small_dirs)
+    return sum([d.size for d in small_dirs])
 
 
 def part_two(input: str) -> int:
-    print(input)
-    return 0
+    root = parse_input(input)
+    """ root.print() """
+    """ dirs = root.get_all_dirs([]) """
+
+    total = 70000000
+    required = 30000000
+    current = root.size
+    free = total - current
+    missing = abs(free - required)
+
+    dirs = root.get_all_dirs([])
+    sizes = [d.size for d in dirs if d.size >= missing]
+
+    return sorted(sizes)[0]
 
 
 def main(p: int, s: bool) -> int:
@@ -161,5 +178,5 @@ def main(p: int, s: bool) -> int:
 
 
 if __name__ == "__main__":
-    result = main(p=1, s=False)
+    result = main(p=2, s=False)
     print(result)
